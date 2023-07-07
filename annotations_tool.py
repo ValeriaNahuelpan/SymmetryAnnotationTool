@@ -29,7 +29,6 @@ import grafica.easy_shaders as es
 import grafica.lighting_shaders as ls
 import grafica.performance_monitor as pm
 from grafica.assets_path import getAssetPath
-from tooff import obj2off
 import trimesh
 from view_symmetry import *
 import json
