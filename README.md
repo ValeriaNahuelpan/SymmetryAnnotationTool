@@ -23,11 +23,11 @@ py annotations_tool.py
 ```
 ## Uso
 1. Abrir archivos .off de la carpeta offObjects
-2. Para agregar simetrías reflectivas se debe colocar dos puntos sobre el objeto luego de presionar "Add new" y se dibujará un plano perpendicular al vector normal que los une.
+2. Para agregar simetrías reflectivas se debe colocar dos puntos con el click derecho sobre el objeto luego de presionar "Add new" y se dibujará un plano perpendicular al vector normal que los une.
    
 ![reflective](https://github.com/ValeriaNahuelpan/SymmetryAnnotationTool/assets/62121145/23b658bb-0b5f-4260-b728-efd0c432d07d)
 
-3. Para agregar simetría rotacional (permite solo una), colocar más de 4 puntos (se puede hasta 15) sobre el borde de algún objeto circular. Presionar "Draw rotation axis" y se dibujará un eje de rotación sobre el objeto.
+3. Para agregar simetría rotacional (permite solo una), colocar más de 4 puntos (se puede hasta 15) con el click derecho sobre el borde de algún objeto circular. Presionar "Draw rotation axis" y se dibujará un eje de rotación sobre el objeto.
 
 ![rotationalAxis](https://github.com/ValeriaNahuelpan/SymmetryAnnotationTool/assets/62121145/8ca6b2ac-4172-4465-9c62-e3957ed2bc0f)
 
