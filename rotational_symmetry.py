@@ -114,7 +114,7 @@ class RotationalSymmetry:
             # add a point in scene
             sceneNode.childs += [p]
             # we need the inverse matrix because the axis also rotates along with the object
-            p.transform = tr.matmul([inv_matrix, tr.translate(position[0], position[1], position[2]), tr.uniformScale(0.05)])
+            p.transform = tr.matmul([inv_matrix, tr.translate(position[0], position[1], position[2]), tr.uniformScale(0.0018)])
             self.points = np.append(self.points, p)
 
     # calculate the best plane and draw rotatation axis
@@ -183,31 +183,21 @@ class RotationalSymmetry:
             rotationAxis = sg.SceneGraphNode("axis")
             rotationAxis.childs += [cubeShape]
             sceneNode.childs += [rotationAxis]
-            rotationAxis.transform = tr.matmul([symmetryPlane.transform, tr.scale(5,0.03,0.03)])
+            rotationAxis.transform = tr.matmul([symmetryPlane.transform, tr.scale(5,0.001,0.001)])
             info = {
                           "point": mid_point,
                           "normal": normalizado
                         }
             self.info.append(info)
             return self.info
-            # to see graphically the best plane and mid point we can uncomment the following:
 
-            # mid = sg.SceneGraphNode("mid")
-            # mid.childs += [sphereShape]
-            # sceneNode.childs += [mid]
-            # mid.transform = tr.matmul([tr.translate(mid_point[0],mid_point[1],mid_point[2]),tr.scale(0.05,0.05,0.05)])
-
-            # bestPlane = sg.SceneGraphNode("bestPlane")
-            # bestPlane.childs += [cubeShape]
-            # sceneNode.childs += [bestPlane]
-            # bestPlane.transform = tr.matmul([symmetryPlane.transform, tr.scale(0,6,6)])
     def drawAxis(self, pipeline, sceneNode):
         cubeShape, _, _ = createOFFShape(pipeline, 'cube.off', 0.0, 0.0, 0.0)
         symmetryPlane = SymmetryPlane(np.array(self.info[0]["point"]), np.array(self.info[0]["normal"]))
         rotationAxis = sg.SceneGraphNode("axis")
         rotationAxis.childs += [cubeShape]
         sceneNode.childs += [rotationAxis]
-        rotationAxis.transform = tr.matmul([symmetryPlane.transform, tr.scale(5,0.03,0.03)])
+        rotationAxis.transform = tr.matmul([symmetryPlane.transform, tr.scale(5,0.001,0.001)])
        
 
 

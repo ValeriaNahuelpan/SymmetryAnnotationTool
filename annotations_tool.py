@@ -64,7 +64,7 @@ def on_key(window, key, scancode, action, mods):
 
 
 global model
-model = 'jarrito.off' # modelo por defecto
+model = 'mesh13.off' # default
 
 def readOFF(filename, color):
     vertices = []
@@ -84,7 +84,7 @@ def readOFF(filename, color):
         for i in range(numVertices):
             aux = file.readline().strip().split(' ')
             vertices += [float(coord) for coord in aux[0:]]
-        
+
         vertices = np.asarray(vertices)
         vertices = np.reshape(vertices, (numVertices, 3))
         print(f'Vertices shape: {vertices.shape}')
@@ -154,11 +154,9 @@ def createScene(pipeline):
 
     ObjShape, obj_vertices, obj_faces = createOFFShape(pipeline, model, color[0],color[1],color[2])
 
-    #trimesh
-    scale_factor = 20
-    scaled_vertices = obj_vertices * scale_factor
+    # we must adjust the mesh to match the object
     obj_faces = np.flip(obj_faces, axis=1)
-    mesh = trimesh.Trimesh(vertices=scaled_vertices, faces=obj_faces)
+    mesh = trimesh.Trimesh(vertices=obj_vertices, faces=obj_faces)
     rotation_matrix = trimesh.transformations.rotation_matrix(np.pi, [1, 0, 0])
     mesh.apply_transform(rotation_matrix)
     reflect_matrix = np.array([
@@ -168,23 +166,23 @@ def createScene(pipeline):
         [0, 0, 0, 1]
     ])
     mesh.apply_transform(reflect_matrix)
+    angle = np.pi
+    rotation_matrix = np.array([[np.cos(angle), 0, np.sin(angle), 0],
+                                [0, 1, 0, 0],
+                                [-np.sin(angle), 0, np.cos(angle), 0],
+                                [0, 0, 0, 1]])
+
+    mesh.apply_transform(rotation_matrix)
     transformed_mesh = mesh.copy()
 
     ObjNode = sg.SceneGraphNode("ObjNode")
-    ObjNode.transform = tr.matmul([tr.translate(0,0,0), tr.uniformScale(20)])
     ObjNode.childs += [ObjShape]
-
     Obj2Node = sg.SceneGraphNode("ObjNode")
-    Obj2Node.transform = tr.rotationY(np.pi)
     Obj2Node.childs += [ObjNode]
-
     ObjRotation = sg.SceneGraphNode("ObjRotation")
     ObjRotation.childs += [Obj2Node]
-
     SceneNode= sg.SceneGraphNode("SceneNode")
     SceneNode.childs += [ObjRotation]
-
-
 
     return SceneNode
 
@@ -210,7 +208,7 @@ def mouse_button_callback(window, button, action, mods):
         transformed_mesh.apply_transform(mesh_transform)
 
         # Lanza el rayo desde una posición fija en el espacio de tu objeto en la dirección calculada
-        ray_origin = [0, 0, 10]
+        ray_origin = [0, 0,  0.5]
         hit_location, _, _ = transformed_mesh.ray.intersects_location(
             ray_origins=[ray_origin],
             ray_directions=[direction],
@@ -504,7 +502,7 @@ def transformGuiOverlay(locationRX, locationRY, locationRZ):
                     plane.transform = tr.matmul([inv_rotation_matrix,tr.rotationX(locationRX),tr.rotationY(locationRY),vsym.transform, tr.scale(0,3,6)])
                     refSymmetry.save_symmetry(symmetry["point"], symmetry["normal"])
                     symmetry_count += 1
-                    
+
                 for symmetry in symmetriesJson["rotational"]:
                     rotSymmetry.info.append({"point": symmetry["point"], "normal": symmetry["normal"]})
                     rotSymmetry.drawAxis(pipeline, Scene)
@@ -525,7 +523,7 @@ def transformGuiOverlay(locationRX, locationRY, locationRZ):
         if imgui.tree_node("Rotational           ", imgui.TREE_NODE_SELECTED):
             symmetriesGUI(rotSymmetry.info, "rotational")
             if rotSymmetry.adding == False and rotSymmetry.axisAdded == False and len(rotSymmetry.info)<1 and not refSymmetry.adding:
-                if imgui.button("add new##rotational"):
+                if imgui.button("Add new##rotational"):
                     rotSymmetry.adding = True
             if rotSymmetry.adding == True and rotSymmetry.axisAdded == False and len(rotSymmetry.points)>4:
                 if imgui.button("Draw rotation axis"):
@@ -648,7 +646,7 @@ if __name__ == "__main__":
     glUseProgram(pipeline.shaderProgram)
     glUniformMatrix4fv(glGetUniformLocation(pipeline.shaderProgram, "projection"), 1, GL_TRUE, projection)
 
-    viewPos = np.array([0,0,10])
+    viewPos = np.array([0,0, 0.5])
     view = tr.lookAt(
             viewPos,
             np.array([0,0,0]),

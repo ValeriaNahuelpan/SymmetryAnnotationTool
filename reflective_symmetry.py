@@ -127,7 +127,7 @@ class ReflectiveSymmetry:
                 # add a point in scene
                 sceneNode.childs += [p]
                 # we need the inverse matrix because the axis also rotates along with the object
-                p.transform = tr.matmul([inv_matrix, tr.translate(position[0], position[1], position[2]), tr.uniformScale(0.05)])
+                p.transform = tr.matmul([inv_matrix, tr.translate(position[0], position[1], position[2]), tr.uniformScale(0.0018)])
                 self.pointsPairs[-1] += (p,)
                 # finish adding points to the tuple to continue with a new
                 self.adding = False
@@ -138,7 +138,7 @@ class ReflectiveSymmetry:
                 p.childs += [sphereShape]
                 sceneNode.childs += [p]
                 print("ading point number 1 from pair number " + str(1+len(self.pointsPairs)))
-                p.transform = tr.matmul([inv_matrix, tr.translate(position[0], position[1], position[2]), tr.uniformScale(0.05)])
+                p.transform = tr.matmul([inv_matrix, tr.translate(position[0], position[1], position[2]), tr.uniformScale(0.0018)])
                 self.pointsPairs.append((p,))
 
         else:
@@ -147,7 +147,7 @@ class ReflectiveSymmetry:
             p.transform = tr.uniformScale(0.00)
             p.childs += [sphereShape]
             sceneNode.childs += [p]
-            p.transform = tr.matmul([inv_matrix, tr.translate(position[0], position[1], position[2]), tr.uniformScale(0.05)])
+            p.transform = tr.matmul([inv_matrix, tr.translate(position[0], position[1], position[2]), tr.uniformScale(0.0018)])
             self.pointsPairs.append((p,))
 
     def save_symmetry(self, midPoint, normal):
