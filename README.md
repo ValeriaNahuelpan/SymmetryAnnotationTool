@@ -31,6 +31,9 @@ py annotations_tool.py
 
 ![rotationalAxis](https://github.com/ValeriaNahuelpan/SymmetryAnnotationTool/assets/62121145/8ca6b2ac-4172-4465-9c62-e3957ed2bc0f)
 
+## Encuesta sobre usabilidad
+https://forms.gle/Q8m6nzwrqMRQ76rU9
+
 ## Contacto
 telegram: @blckned
 
