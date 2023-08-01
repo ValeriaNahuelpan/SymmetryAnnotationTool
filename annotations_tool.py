@@ -218,7 +218,6 @@ def mouse_button_callback(window, button, action, mods):
         if len(hit_location)>0 and refSymmetry.adding:
             refSymmetry.create_point(pipeline, Scene, (hit_location[0][0], -hit_location[0][1], hit_location[0][2]), inv_rotation_matrix)
             lastPair = refSymmetry.pointsPairs[-1]
-            print(lastPair)
             # if pair of points is completed
             if len(lastPair) == 2:
                 if len(refSymmetry.info)>= len(refSymmetry.colors):
@@ -241,16 +240,15 @@ def mouse_button_callback(window, button, action, mods):
                 # creation of the plane and its transformation matrix
                 symmetryPlane = SymmetryPlane(np.array(punto_medio), np.array(normalizado))
                 # plane = sg.findNode(Plane, "planeNode")
-                plane.transform = tr.matmul([inv_rotation_matrix,tr.rotationX(locationRX),tr.rotationY(locationRY),symmetryPlane.transform, tr.scale(0,3,6)])
-                refSymmetry.save_symmetry(punto_medio, normalizado)
+                plane.transform = tr.matmul([inv_rotation_matrix,tr.rotationX(locationRX),tr.rotationY(locationRY),symmetryPlane.transform, tr.scale(0,0.2,0.5)])
+                refSymmetry.save_symmetry(punto_medio, normalizado, [])
         elif len(hit_location)>0 and rotSymmetry.adding:
             rotSymmetry.create_point(pipeline, Scene, (hit_location[0][0], -hit_location[0][1], hit_location[0][2]), inv_rotation_matrix)
         else:
             print("out of object")
         transformed_mesh = mesh.copy()
 
-# Función de devolución de llamada que se llama cuando se mueve el mouse
-# variables globales adicionales
+# movimiento del objeto con el cursor
 lastRY = 0.0
 xDirection = 0  # -1 para movimiento hacia izquierda, 1 para movimiento hacia derecha
 lastRX = 0.0
@@ -337,6 +335,7 @@ def getSymmetriesJson():
         else:
             return {"rotational":{}, "reflectives": []}
 
+checkbox_states = {"reflectives":[],"rotational":[], "refined_reflectives":[],"refined_rotational":[]}
 def symmetriesGUI(symmetries, type):
         global symmetriesJson, Plane, refSymmetry
         proyectPath = os.path.dirname(os.path.abspath("annotations_tool.py"))
@@ -345,72 +344,134 @@ def symmetriesGUI(symmetries, type):
         # this function shows the symmetries of each object
         for i in range(len(symmetries)):
             if type == "reflectives":
-                imgui.text_colored("symmetry" + str(i+1), refSymmetry.colors[i][0],refSymmetry.colors[i][1],refSymmetry.colors[i][2])
+                if symmetries[i]["isRef"]:
+                    imgui.text_colored("refined symmetry" + str(i+1), refSymmetry.colors[i][0],refSymmetry.colors[i][1],refSymmetry.colors[i][2])
+                else:
+                    imgui.text_colored("symmetry" + str(i+1), refSymmetry.colors[i][0],refSymmetry.colors[i][1],refSymmetry.colors[i][2])
+
             else:
-                imgui.text("symmetry" + str(i+1))
+                if symmetries[i]["isRef"]:
+                    imgui.text("refined symmetry"+ str(i+1))
+                else:
+                    imgui.text("symmetry"+ str(i+1))
             imgui.same_line()
-            #DISPLAY (work in progress...)
-            # checkbox initialized in true
-            # if i >= len(checkbox_states):
-            #     checkbox_states.append(True)
-            # # # Checkbox para verificación
-            # _, checkbox_states[i] = imgui.checkbox(f"##checkbox_{i}", checkbox_states[i])
-            # if not checkbox_states[i]:
-            #     plane = sg.findNode(Plane,"planeRef" + str(i+1))
-            #     plane.transform = tr.uniformScale(0.00)
+
+            # DISPLAY
+            try: # we use try because the update of the variable "i" is not immediate
+                #checkbox initialized in true
+                if i >= len(checkbox_states[type]):
+                    checkbox_states[type].append(True)
+                # Checkbox to display symmetry
+                _, checkbox_states[type][i] = imgui.checkbox(f"##checkbox_{i}", checkbox_states[type][i])
+                if type == "reflectives":
+                    if symmetries[i]["isRef"]:
+                        p = sg.findNode(Plane,"planeRefined" + str(i+1))
+                    else:
+                        p = sg.findNode(Plane,"planeRef" + str(i+1))
+                    if checkbox_states[type][i] == False:
+                        p.transform = tr.uniformScale(0.00)
+                    else:
+                        vsym = SymmetryPlane(np.array(symmetries[i]["point"]),symmetries[i]["normal"])
+                        p.transform = tr.matmul([inv_rotation_matrix,tr.rotationX(locationRX),tr.rotationY(locationRY),vsym.transform, tr.scale(0,0.2,0.4)])
+                else:
+                    if symmetries[i]["isRef"]:
+                        axis = sg.findNode(Scene,"axisRefined")
+                    else:
+                        axis = sg.findNode(Scene,"axis")
+                    #axis = sg.findNode(Scene,"axis")
+                    if checkbox_states[type][i] == False:
+                        axis.transform = tr.uniformScale(0.00)
+                    else:
+                        vsym =  SymmetryPlane(np.array(symmetries[i]["point"]), symmetries[i]["normal"])
+                        axis.transform = tr.matmul([vsym.transform, tr.scale(5,0.001,0.001)])
+                if imgui.is_item_hovered():
+                    imgui.begin_tooltip()
+                    imgui.text("Display/Hide")
+                    imgui.end_tooltip()
+            except:
+                pass
 
             # DELETE
             imgui.same_line()
             imgui.push_style_color(imgui.COLOR_BUTTON, 0.3, 0.0, 0)
             imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, 0.5, 0.0, 0)
             imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, 0.5, 0.0, 0)
-            if imgui.button(f"delete##symmetry_{i}", 48):
-                print("removing")
+            if imgui.button(f"X##symmetry_{i}", 20):
                 if type == "reflectives":
                     # change de name of plane and removed plane from scene
-                    planeactual= sg.findNode(Plane,"planeRef" + str(i+1))
-                    planeactual.name = "removed"
-                    planeactual.transform = tr.uniformScale(0.00)
-                    # the names of the remaining planes are changed.
+                    if symmetries[i]["isRef"]:
+                        planeactualRef= sg.findNode(Plane,"planeRefined" + str(i+1))
+                        planeactualRef.name = "removed"
+                        planeactualRef.transform = tr.uniformScale(0.00)
+                    else:
+                        planeactual= sg.findNode(Plane,"planeRef" + str(i+1))
+                        planeactual.name = "removed"
+                        planeactual.transform = tr.uniformScale(0.00)
+
+                    # the names of the remaining planes are changed only if symetry has not been refined.
                     for index in range(i+2, len(symmetries)+1):
-                        plane= sg.findNode(Plane, "planeRef" + str(index))
-                        plane.name = "planeRef" + str(index-1)
-                        p = sg.findNode(Plane, plane.name)
+                        if symmetries[i]["isRef"] or len(symmetries[i]["normalRefined"])==0:
+                            try:
+                                pRef= sg.findNode(Plane, "planeRefined" + str(index))
+                                pRef.name = "planeRefined" + str(index-1)
+                            except:
+                                pass
+                            try:
+                                plane= sg.findNode(Plane, "planeRef" + str(index))
+                                plane.name = "planeRef" + str(index-1)
+                            except:
+                                pass
                 else: #rotational
-                    axis = sg.findNode(Scene, "axis")
-                    axis.name ="removedAxis"
-                    axis.transform = tr.uniformScale(0.00)
-                    rotSymmetry.axisAdded = False
-                    rotSymmetry.points = np.array([])
+                    if symmetries[i]["isRef"]:
+                        axis = sg.findNode(Scene, "axisRefined")
+                        axis.name ="removedAxisRefined"
+                        axis.transform = tr.uniformScale(0.00)
+                        rotSymmetry.axisAdded = False
+                        rotSymmetry.points = np.array([])
+                    else:
+                        axis = sg.findNode(Scene, "axis")
+                        axis.name ="removedAxis"
+                        axis.transform = tr.uniformScale(0.00)
+                        rotSymmetry.axisAdded = False
+                        rotSymmetry.points = np.array([])
                 # remove symmetry from json if its saved
                 with open('symmetries.json', 'r') as f:
                     content_json = json.load(f)
                 for objeto in content_json['objects']:
                     if objeto['file'] == relativPath:
                         symmetriesList = objeto['symmetries'][type]
-                        symmetriesList[:] = [symmetry for symmetry in symmetriesList if symmetry != symmetries[i]]
+                        symmetriesList[:] = [symmetry for symmetry in symmetriesList if symmetry != {"point":symmetries[i]["point"],"normal":symmetries[i]["normal"]}]
                         break
                 updated_content = json.dumps(content_json, indent=4)
                 with open('symmetries.json', 'w') as f:
                     f.write(updated_content)
                 # update json info
                 symmetriesJson = getSymmetriesJson()
-                # remove symmetry from Class ReflectiveSymmetry or RotationalSymmetry
-                #symmetries.pop(i)
-                to_delete.append(i)
                 # readjust the list of colors and the color of the labels
-                if type == "reflectives":
+                if type == "reflectives" and (len(symmetries[i]["normalRefined"])==0 or symmetries[i]["isRef"]):
                     color = refSymmetry.colors.pop(i)
                     refSymmetry.colors.append(color)
-                print("deleted", i)
+                # remove symmetry from Class ReflectiveSymmetry or RotationalSymmetry
+                #symmetries.pop(i)
+                if len(symmetries[i]["normalRefined"])==0 or symmetries[i]["isRef"]:
+                    to_delete.append(i)
+                else:
+                    symmetries[i]["point"] = symmetries[i]["pointRefined"]
+                    symmetries[i]["normal"] = symmetries[i]["normalRefined"]
+                    #symmetries[i]["normalRefined"] = [0]
+                    symmetries[i]["isRef"] = True
 
+            if imgui.is_item_hovered():
+                imgui.begin_tooltip()
+                imgui.text("Remove")
+                imgui.end_tooltip()
             imgui.pop_style_color(3)
 
-            #SAVE
+            # SAVE
             # if it's not saved on the json
-            if json.dumps(symmetries[i]) not in json.dumps(symmetriesJson[type]):
+            if json.dumps({"point":symmetries[i]["point"],"normal":symmetries[i]["normal"]}) not in json.dumps(symmetriesJson[type]):
                 imgui.same_line()
-                if imgui.button(f"save##symmetry_{i}"):
+                if imgui.button(f"Save##symmetry_{i}"):
                     with open('symmetries.json', 'r') as f:
                         content_json = json.load(f)
                     object_exist = None
@@ -421,7 +482,7 @@ def symmetriesGUI(symmetries, type):
                     # if object exists
                     if object_exist is not None:
                         new_reflective = symmetries[i]
-                        object_exist['symmetries'][type].append(new_reflective)
+                        object_exist['symmetries'][type].append({"point": new_reflective["point"], "normal": new_reflective["normal"]})
                     else:
                         new_object = {
                             "file": relativPath,
@@ -430,13 +491,157 @@ def symmetriesGUI(symmetries, type):
                                 "reflectives": []
                             }
                         }
-                        new_object['symmetries'][type].append(symmetries[i])
+                        new_object['symmetries'][type].append({"point":symmetries[i]["point"],"normal":symmetries[i]["normal"]})
                         content_json['objects'].append(new_object)
                     updated_content = json.dumps(content_json, indent=4)
                     with open('symmetries.json', 'w') as archivo:
                         archivo.write(updated_content)
                     print("The new reflective symmetry has been successfully added in the JSON file.")
+                    if len(symmetries[i]["normalRefined"]) > 1 and symmetries[i]["isRef"]==False:
+                        symmetries[i]["normalRefined"] = []
+                        symmetries[i]["pointRefined"] = []
+                        symmetries[i]["isRef"] = False
+                        if type=="reflectives":
+                            pRef= sg.findNode(Plane,"planeRefined" + str(i+1))
+                        else:
+                            pRef= sg.findNode(Scene,"axisRefined")
+                        pRef.name = "removed"
+                        pRef.transform = tr.uniformScale(0.00)
                     symmetriesJson = getSymmetriesJson()
+
+            # REFINE
+            if len(symmetries[i]["normalRefined"]) == 0:
+                imgui.same_line()
+                if imgui.button(f"Refine##symmetry_{i}"):
+                    #Read triangle mesh with open3d
+                    mesh = o3d.io.read_triangle_mesh(relativPath)
+                    #Convert mesh to numpy arrays
+                    points = np.asarray(mesh.vertices)
+                    triangles = np.asarray(mesh.triangles)
+                    #Refinamos la simetrias reflectiva
+                    if type=="reflectives":
+                        new_normal = refineReflectionTransform(symmetries[i]["point"], symmetries[i]["normal"], points)
+                        #create a new plane with the refined symmetry
+                        sym_ref = SymmetryPlane(np.array(symmetries[i]["point"]), np.array(new_normal))
+                        cubeShape, _, _ = createOFFShape(pipeline, 'cube.off', 1,1,1)
+                        planeScene = sg.findNode(Plane, "SceneNode")
+                        pRef = sg.SceneGraphNode("planeRefined" + str(i+1))
+                        pRef.childs += [cubeShape]
+                        pRef.transform = tr.matmul([inv_rotation_matrix,tr.rotationX(locationRX),tr.rotationY(locationRY), sym_ref.transform, tr.scale(0,0.2,0.4)])
+                        planeScene.childs += [pRef]
+                        symmetries[i]["pointRefined"] = symmetries[i]["point"]
+                    else: # rotational
+                        new_point, new_normal = refineRotationTransform(np.array(symmetries[i]["point"]), np.array(symmetries[i]["normal"]), points)
+                        sym_rot = SymmetryPlane(point=new_point, normal=new_normal)
+                        cubeShape, _, _ = createOFFShape(pipeline, 'cube.off', 1,1,1)
+                        rotationAxis = sg.SceneGraphNode("axisRefined")
+                        rotationAxis.childs += [cubeShape]
+                        rotationAxis.transform = tr.matmul([sym_rot.transform, tr.scale(5,0.001,0.001)])
+                        Scene.childs += [rotationAxis]
+                        symmetries[i]["pointRefined"] = [new_point[0],new_point[1],new_point[2]]
+                    # save new normal in the class
+                    symmetries[i]["normalRefined"] = [new_normal[0],new_normal[1],new_normal[2]]
+
+            # symmetry has been refined
+            elif symmetries[i]['isRef']==False:
+                if type == "reflectives":
+                    imgui.text_colored("refined symmetry" + str(i+1) , refSymmetry.colors[i][0],refSymmetry.colors[i][1],refSymmetry.colors[i][2])
+                else:
+                    imgui.text("refined symmetry" + str(i+1))
+                imgui.same_line()
+                # DISPLAY
+                try:
+                    #checkbox initialized in true
+                    if i >= len(checkbox_states["refined_" + str(type)]):
+                        checkbox_states["refined_" + str(type)].append(True)
+                    # Checkbox to display symmetry
+                    _, checkbox_states["refined_" + str(type)][i] = imgui.checkbox(f"##checkboxRefined_{str(i) + str(type)}", checkbox_states["refined_" + str(type)][i])
+                    if type == "reflectives":
+                        pRef = sg.findNode(Plane,"planeRefined" + str(i+1))
+                        if checkbox_states["refined_" + str(type)][i] == False:
+                            pRef.transform = tr.uniformScale(0.00)
+                        else:
+                            sym_ref = SymmetryPlane(np.array(symmetries[i]["point"]), np.array(symmetries[i]["normalRefined"]))
+                            pRef.transform = tr.matmul([inv_rotation_matrix,tr.rotationX(locationRX),tr.rotationY(locationRY), sym_ref.transform, tr.scale(0,0.2,0.4)])
+
+                    else:
+                        axis = sg.findNode(Scene,"axisRefined")
+                        if checkbox_states["refined_" + str(type)][i] == False:
+                            axis.transform = tr.uniformScale(0.00)
+                        else:
+                            vsym =  SymmetryPlane(np.array(symmetries[i]["pointRefined"]), symmetries[i]["normalRefined"])
+                            axis.transform = tr.matmul([vsym.transform, tr.scale(5,0.001,0.001)])
+                    if imgui.is_item_hovered():
+                        imgui.begin_tooltip()
+                        imgui.text("Display/Hide")
+                        imgui.end_tooltip()
+                except:
+                    pass
+                imgui.same_line()
+                if imgui.button(f"X##XRefine_{i}"):
+                    # remove the refined symmetry inside the class
+                    symmetries[i]["pointRefined"] = []
+                    symmetries[i]["normalRefined"] = []
+                    symmetries[i]["isRef"] = False
+                    if type=="reflectives":
+                        pRef= sg.findNode(Plane,"planeRefined" + str(i+1))
+                    else:
+                        pRef= sg.findNode(Scene,"axisRefined")
+                    pRef.name = "removed"
+                    pRef.transform = tr.uniformScale(0.00)
+                imgui.same_line()
+                if imgui.button(f"Save##saveRefine{i}"):
+                    # remove unrefined symmetry from scene and json
+                    if type=="reflectives":
+                        sym= sg.findNode(Plane,"planeRef" + str(i+1))
+                    else:
+                        sym= sg.findNode(Scene,"axis")
+                    sym.name = "removed"
+                    sym.transform = tr.uniformScale(0.00)
+                    # remove symmetry from json if its saved
+                    with open('symmetries.json', 'r') as f:
+                        content_json = json.load(f)
+                    for objeto in content_json['objects']:
+                        if objeto['file'] == relativPath:
+                            symmetriesList = objeto['symmetries'][type]
+                            symmetriesList[:] = [symmetry for symmetry in symmetriesList if symmetry != {"point":symmetries[i]["point"],"normal":symmetries[i]["normal"]}]
+                            break
+                    updated_content = json.dumps(content_json, indent=4)
+                    with open('symmetries.json', 'w') as f:
+                        f.write(updated_content)
+                    symmetries[i]["point"] = symmetries[i]["pointRefined"]
+                    symmetries[i]["normal"] = symmetries[i]["normalRefined"]
+                    #symmetries[i]["normalRefined"] = [0]
+                    symmetries[i]["isRef"] = True
+                    # update json info
+                    symmetriesJson = getSymmetriesJson()
+                    # save the refined in the JSON #!
+                    for obj in content_json['objects']:
+                        if obj['file'] == relativPath:
+                            object_exist = obj
+                            break
+                    # if object exists
+                    if object_exist is not None:
+                        new_reflective = symmetries[i]
+                        object_exist['symmetries'][type].append({"point": new_reflective["point"], "normal": new_reflective["normal"]})
+                    else:
+                        new_object = {
+                            "file": relativPath,
+                            "symmetries": {
+                                "rotational": [],
+                                "reflectives": []
+                            }
+                        }
+                        new_object['symmetries'][type].append({"point":symmetries[i]["point"],"normal":symmetries[i]["normal"]})
+                        content_json['objects'].append(new_object)
+                    updated_content = json.dumps(content_json, indent=4)
+                    with open('symmetries.json', 'w') as archivo:
+                        archivo.write(updated_content)
+                    print("The new reflective symmetry has been successfully added in the JSON file.")
+                    # update json info
+                    symmetriesJson = getSymmetriesJson()
+
+
         for i in reversed(to_delete):
             symmetries.pop(i)
 
@@ -479,9 +684,9 @@ def transformGuiOverlay(locationRX, locationRY, locationRZ):
                 refSymmetry = ReflectiveSymmetry()
                 # obj2off(modelobj, getAssetPath('newOff.off') )   #convert .obj to .off
                 model = getAssetPath(modelobj) #.off
-                # renderizamos el nuevo modelo
+                # new scene
                 Scene = createScene(pipeline)
-                # y una nueva escena de planos
+                # new plane scene
                 Plane = createPlane(pipeline2)
                 # if object have symmetry it is shown
                 symmetriesJson = getSymmetriesJson()
@@ -499,12 +704,12 @@ def transformGuiOverlay(locationRX, locationRY, locationRZ):
                     plane.childs += [cubeShape]
                     planeScene.childs += [plane]
                     # plane = sg.findNode(Plane, "planeNode")
-                    plane.transform = tr.matmul([inv_rotation_matrix,tr.rotationX(locationRX),tr.rotationY(locationRY),vsym.transform, tr.scale(0,3,6)])
+                    plane.transform = tr.matmul([inv_rotation_matrix,tr.rotationX(locationRX),tr.rotationY(locationRY),vsym.transform, tr.scale(0,0.2,0.4)])
                     refSymmetry.save_symmetry(symmetry["point"], symmetry["normal"])
                     symmetry_count += 1
 
                 for symmetry in symmetriesJson["rotational"]:
-                    rotSymmetry.info.append({"point": symmetry["point"], "normal": symmetry["normal"]})
+                    rotSymmetry.save_symmetry(symmetry["point"],symmetry["normal"])
                     rotSymmetry.drawAxis(pipeline, Scene)
                 open_file = True
             imgui.end_menu()
@@ -546,39 +751,28 @@ def transformGuiOverlay(locationRX, locationRY, locationRZ):
     return locationRX, locationRY, locationRZ
 
 
-# Función para convertir la posición del cursor en la ventana GLFW en una dirección de rayo en el espacio del objeto
+# Function to convert the cursor position in the GLFW window to a ray direction in object space
 def get_ray_direction(window, x, y):
-
-    # Posición del cursor en píxeles
+    # Cursor position in pixels
     x, y = glfw.get_cursor_pos(window)
-
-    # Se obtiene el ancho y la altura de la ventana
+    # Gets the width and height of the window
     width, height = glfw.get_framebuffer_size(window)
-
-    # Se normalizan las coordenadas del cursor
+    # Cursor coordinates are normalized
     try:
         cursor_pos = np.array([x/width, y/height])
           #ZeroDivisionError: float division by zero
-        
-
-        # Se obtiene la matriz de proyección inversa y la matriz de vista inversa
+        # The inverse projection matrix and the inverse view matrix are obtained
         inv_projection = np.linalg.inv(projection)
         inv_view = np.linalg.inv(view)
-
-        # Convierte la posición del cursor en coordenadas normalizadas a coordenadas de espacio de vista
+        # Converts cursor position from normalized coordinates to view space coordinates
         view_pos = inv_projection @ np.array([cursor_pos[0]*2-1, cursor_pos[1]*2-1, -1, 1])
         view_pos /= view_pos[3]
-
-        # Convierte la posición del cursor de espacio de vista a espacio de mundo
+        # Converts cursor position from view space to world space
         world_pos = inv_view @ view_pos
-
-
-        # Calcula la dirección del rayo
+        # Calculate the direction of the ray
         ray_dir = world_pos[:3] - viewPos
         ray_dir /= np.linalg.norm(ray_dir)
-
         ray_direction = ray_dir
-
         return ray_direction
     except:
         pass
@@ -601,7 +795,7 @@ if __name__ == "__main__":
     glViewport(0, 0, windowWidth, windowHeight)
 
 
-    # Variables globales para el movimiento del mouse
+    # Global variables for object movement
     lastX, lastY = 0, 0
     isDragging = False
     initialX = 0
@@ -774,9 +968,9 @@ if __name__ == "__main__":
     # # freeing GPU memory
     # gpuQuad.clear()
 
-    # freeing GPU memory
-    # gpuAxis.clear()
-    # Scene.clear()
+    #freeing GPU memory
+    gpuAxis.clear()
+    Scene.clear()
 
     impl.shutdown()
     glfw.terminate()

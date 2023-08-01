@@ -186,7 +186,10 @@ class RotationalSymmetry:
             rotationAxis.transform = tr.matmul([symmetryPlane.transform, tr.scale(5,0.001,0.001)])
             info = {
                           "point": mid_point,
-                          "normal": normalizado
+                          "normal": normalizado,
+                          "pointRefined": [],
+                          "normalRefined": [],
+                          "isRef":False
                         }
             self.info.append(info)
             return self.info
@@ -198,7 +201,17 @@ class RotationalSymmetry:
         rotationAxis.childs += [cubeShape]
         sceneNode.childs += [rotationAxis]
         rotationAxis.transform = tr.matmul([symmetryPlane.transform, tr.scale(5,0.001,0.001)])
-       
+
+    def save_symmetry(self, midPoint, normal, pointRefined=[], normalRefined=[], isRef=False):
+        info = {
+                "point": midPoint,
+                "normal": normal,
+                "pointRefined": pointRefined,
+                "normalRefined": normalRefined,
+                "isRef": isRef
+               }
+        self.info.append(info)
+        return info
 
 
 

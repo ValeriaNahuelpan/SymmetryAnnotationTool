@@ -119,7 +119,7 @@ class ReflectiveSymmetry:
             lastPair = self.pointsPairs[-1]
             if len(lastPair) < 2:
                 # second point in tuple
-                print("ading point number 2 from pair number " + str(len(self.pointsPairs)))
+                #print("ading point number 2 from pair number " + str(len(self.pointsPairs)))
                 # add new node in scene
                 p = sg.SceneGraphNode("point2-tuple" + str(len(self.pointsPairs)))
                 p.transform = tr.uniformScale(0.00)
@@ -137,12 +137,12 @@ class ReflectiveSymmetry:
                 p.transform = tr.uniformScale(0.00)
                 p.childs += [sphereShape]
                 sceneNode.childs += [p]
-                print("ading point number 1 from pair number " + str(1+len(self.pointsPairs)))
+                #print("ading point number 1 from pair number " + str(1+len(self.pointsPairs)))
                 p.transform = tr.matmul([inv_matrix, tr.translate(position[0], position[1], position[2]), tr.uniformScale(0.0018)])
                 self.pointsPairs.append((p,))
 
         else:
-            print("ading point number 1 from pair number 1 ")
+            #print("ading point number 1 from pair number 1 ")
             p = sg.SceneGraphNode("point1-tuple0")
             p.transform = tr.uniformScale(0.00)
             p.childs += [sphereShape]
@@ -150,10 +150,13 @@ class ReflectiveSymmetry:
             p.transform = tr.matmul([inv_matrix, tr.translate(position[0], position[1], position[2]), tr.uniformScale(0.0018)])
             self.pointsPairs.append((p,))
 
-    def save_symmetry(self, midPoint, normal):
+    def save_symmetry(self, midPoint, normal, pointRefined=[], normalRefined=[], isRef=False):
         info = {
                 "point": midPoint,
-                "normal": normal
+                "normal": normal,
+                "pointRefined": pointRefined,
+                "normalRefined": normalRefined,
+                "isRef": isRef
                }
         self.info.append(info)
         return info
