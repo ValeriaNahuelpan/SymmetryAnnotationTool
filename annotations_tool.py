@@ -578,6 +578,9 @@ def symmetriesGUI(symmetries, type):
                 except:
                     pass
                 imgui.same_line()
+                imgui.push_style_color(imgui.COLOR_BUTTON, 0.3, 0.0, 0)
+                imgui.push_style_color(imgui.COLOR_BUTTON_ACTIVE, 0.5, 0.0, 0)
+                imgui.push_style_color(imgui.COLOR_BUTTON_HOVERED, 0.5, 0.0, 0)
                 if imgui.button(f"X##XRefine_{i}"):
                     # remove the refined symmetry inside the class
                     symmetries[i]["pointRefined"] = []
@@ -589,6 +592,11 @@ def symmetriesGUI(symmetries, type):
                         pRef= sg.findNode(Scene,"axisRefined")
                     pRef.name = "removed"
                     pRef.transform = tr.uniformScale(0.00)
+                if imgui.is_item_hovered():
+                    imgui.begin_tooltip()
+                    imgui.text("Remove")
+                    imgui.end_tooltip()
+                imgui.pop_style_color(3)
                 imgui.same_line()
                 if imgui.button(f"Save##saveRefine{i}"):
                     # remove unrefined symmetry from scene and json
