@@ -5,6 +5,7 @@ import numpy as np
 import json
 import open3d as o3d
 from sklearn.neighbors import NearestNeighbors
+import queue
 
 def chamfer_distance(x, y, metric='l2', direction='bi'):
     """Chamfer distance between two point clouds
@@ -184,7 +185,7 @@ def transformPoints(points, transf):
 
     return points2
 
-def refineRotationTransform(point, normal, points):
+def refineRotationTransform(point, normal, points, index, q):
     transf = [generateRotationTransform(point, normal, x) for x in np.linspace(0, 2*np.pi, 6)]
     P = [transformPoints(points, x) for x in transf]
     dist = [chamfer_distance(points, x, metric='l2', direction='bi') for x in P]
@@ -222,8 +223,8 @@ def refineRotationTransform(point, normal, points):
                 dist = dist2
                 point = projected_point
                 print(f'New distance: {dist}')
-
-    return point, normal
+    q.put((point,normal,index))
+    #return point, normal
 
 #Stores the information of a symmetry plane
 class SymmetryPlane:

@@ -8,6 +8,8 @@ pip install imgui[glfw]
 Another example:
 https://github.com/swistakm/pyimgui/blob/master/doc/examples/integrations_glfw3.py#L2
 """
+import threading
+import queue
 import easygui
 import glfw
 from OpenGL.GL import *
@@ -64,7 +66,7 @@ def on_key(window, key, scancode, action, mods):
 
 
 global model
-model = 'mesh13.off' # default
+model = 'mesh3.off' # default
 
 def readOFF(filename, color):
     vertices = []
@@ -203,7 +205,7 @@ def mouse_button_callback(window, button, action, mods):
         elif action == glfw.RELEASE:
             isDragging = False
 
-    if button == glfw.MOUSE_BUTTON_RIGHT and action ==glfw.PRESS :
+    if button == glfw.MOUSE_BUTTON_RIGHT and action ==glfw.PRESS:
         direction = ray_direction
         transformed_mesh.apply_transform(mesh_transform)
 
@@ -335,12 +337,25 @@ def getSymmetriesJson():
         else:
             return {"rotational":{}, "reflectives": []}
 
+def check_rotation_refine(thread, q):
+    global pipeline
+    #with pipeline_lock:
+    if not thread.is_alive():
+        if not q.empty():
+            new_point, new_normal = q.get()
+            return new_point, new_normal
+    else:
+        timer = threading.Timer(5.0,check_rotation_refine,args=(thread, q))
+        timer.start()
+    return None, None
+threadOnProgress = False
 checkbox_states = {"reflectives":[],"rotational":[], "refined_reflectives":[],"refined_rotational":[]}
-def symmetriesGUI(symmetries, type):
-        global symmetriesJson, Plane, refSymmetry
+def symmetriesGUI(s, type):
+        global symmetriesJson, Plane, refSymmetry, rotSymmetry, threadOnProgress, thread, q, symmetries
         proyectPath = os.path.dirname(os.path.abspath("annotations_tool.py"))
         relativPath = os.path.relpath(modelobj, proyectPath).replace("\\","/") #folder-dataset/object.obj
         to_delete = []
+        symmetries = s
         # this function shows the symmetries of each object
         for i in range(len(symmetries)):
             if type == "reflectives":
@@ -530,18 +545,27 @@ def symmetriesGUI(symmetries, type):
                         pRef.transform = tr.matmul([inv_rotation_matrix,tr.rotationX(locationRX),tr.rotationY(locationRY), sym_ref.transform, tr.scale(0,0.2,0.4)])
                         planeScene.childs += [pRef]
                         symmetries[i]["pointRefined"] = symmetries[i]["point"]
+                        symmetries[i]["normalRefined"] = [new_normal[0],new_normal[1],new_normal[2]]
                     else: # rotational
-                        new_point, new_normal = refineRotationTransform(np.array(symmetries[i]["point"]), np.array(symmetries[i]["normal"]), points)
-                        sym_rot = SymmetryPlane(point=new_point, normal=new_normal)
-                        cubeShape, _, _ = createOFFShape(pipeline, 'cube.off', 1,1,1)
-                        rotationAxis = sg.SceneGraphNode("axisRefined")
-                        rotationAxis.childs += [cubeShape]
-                        rotationAxis.transform = tr.matmul([sym_rot.transform, tr.scale(5,0.001,0.001)])
-                        Scene.childs += [rotationAxis]
-                        symmetries[i]["pointRefined"] = [new_point[0],new_point[1],new_point[2]]
+                        print(i)
+                        q = queue.Queue()
+                        thread = threading.Thread(target=refineRotationTransform, args=(np.array(symmetries[i]["point"]), np.array(symmetries[i]["normal"]), points, i, q))
+                        threadOnProgress = True
+                        thread.start()
+                        # new_point, new_normal = check_rotation_refine(thread,q)
+                        # if new_point and new_normal:
+                        # #new_point, new_normal = refineRotationTransform(np.array(symmetries[i]["point"]), np.array(symmetries[i]["normal"]), points)
+                        #     sym_rot = SymmetryPlane(point=new_point, normal=new_normal)
+                        #     cubeShape, _, _ = createOFFShape(pipeline, 'cube.off', 1,1,1)
+                        #     rotationAxis = sg.SceneGraphNode("axisRefined")
+                        #     rotationAxis.childs += [cubeShape]
+                        #     rotationAxis.transform = tr.matmul([sym_rot.transform, tr.scale(5,0.001,0.001)])
+                        #     Scene.childs += [rotationAxis]
+                        #     symmetries[i]["pointRefined"] = [new_point[0],new_point[1],new_point[2]]
+                        #     symmetries[i]["normalRefined"] = [new_normal[0],new_normal[1],new_normal[2]]
                     # save new normal in the class
-                    symmetries[i]["normalRefined"] = [new_normal[0],new_normal[1],new_normal[2]]
-
+                    #symmetries[i]["normalRefined"] = [new_normal[0],new_normal[1],new_normal[2]]
+                    # Verificar si el hilo secundario terminó
             # symmetry has been refined
             elif symmetries[i]['isRef']==False:
                 if type == "reflectives":
@@ -624,6 +648,7 @@ def symmetriesGUI(symmetries, type):
                     # update json info
                     symmetriesJson = getSymmetriesJson()
                     # save the refined in the JSON #!
+                    object_exist = None #!
                     for obj in content_json['objects']:
                         if obj['file'] == relativPath:
                             object_exist = obj
@@ -675,6 +700,7 @@ def transformGuiOverlay(locationRX, locationRY, locationRZ):
     global model, modelobj, relativPath, symmetriesJson
     global objRot, Scene, Plane, pipeline, open_file
     global controller, rotSymmetry, refSymmetry
+    global threadOnProgress, thread, q, symmetries
 
     # start new frame context
     imgui.new_frame()
@@ -734,8 +760,9 @@ def transformGuiOverlay(locationRX, locationRY, locationRZ):
                         refSymmetry.adding = True
             imgui.tree_pop()
         if imgui.tree_node("Rotational           ", imgui.TREE_NODE_SELECTED):
-            symmetriesGUI(rotSymmetry.info, "rotational")
-            if rotSymmetry.adding == False and rotSymmetry.axisAdded == False and len(rotSymmetry.info)<1 and not refSymmetry.adding:
+            if not threadOnProgress:
+                symmetriesGUI(rotSymmetry.info, "rotational")
+            if rotSymmetry.adding == False and rotSymmetry.axisAdded == False and len(rotSymmetry.info)<1 and not refSymmetry.adding and not threadOnProgress:
                 if imgui.button("Add new##rotational"):
                     rotSymmetry.adding = True
             if rotSymmetry.adding == True and rotSymmetry.axisAdded == False and len(rotSymmetry.points)>4:
@@ -746,16 +773,38 @@ def transformGuiOverlay(locationRX, locationRY, locationRZ):
                     rotSymmetry.axisAdded = True
             if rotSymmetry.adding==True:
                 imgui.text("Adding Symmetry ...")
+            if threadOnProgress:
+                imgui.text("Refining Symmetry ...")
+
             imgui.tree_pop()
     else:
-        imgui.text("Open a new file from the menu!!")
+        imgui.text("Open a new file!         ")
 
     imgui.end()
     # pass all drawing comands to the rendering pipeline
     # and close frame context
     imgui.render()
+    # when threads finish draw refine symmetry
+    try:
+        if threadOnProgress and not thread.is_alive() and not q.empty():
+            resultado = q.get()
+            print("Resultado obtenido:", resultado)
+            threadOnProgress = False
+            new_point, new_normal, i = resultado
+            sym_rot = SymmetryPlane(point=new_point, normal=new_normal)
+            cubeShape, _, _ = createOFFShape(pipeline, 'cube.off', 1,1,1)
+            rotationAxis = sg.SceneGraphNode("axisRefined")
+            rotationAxis.childs += [cubeShape]
+            rotationAxis.transform = tr.matmul([sym_rot.transform, tr.scale(5,0.001,0.001)])
+            Scene.childs += [rotationAxis]
+            rotSymmetry.info[i]["pointRefined"] = [new_point[0],new_point[1],new_point[2]]
+            rotSymmetry.info[i]["normalRefined"] = [new_normal[0],new_normal[1],new_normal[2]]
+            threadOnProgress = False
+        else:
+            pass
+    except:
+        pass
     imgui.end_frame()
-
     return locationRX, locationRY, locationRZ
 
 
@@ -820,6 +869,7 @@ if __name__ == "__main__":
     # Assembling the shader program (pipeline) with both shaders
     mvpPipeline = es.SimpleModelViewProjectionShaderProgram()
     pipeline = ls.SimpleFlatShaderProgram()
+    pipeline_lock = threading.Lock()
     pipeline2 = ls.SimpleFlatBlendShaderProgram()
 
     # Telling OpenGL to use our shader program
@@ -951,8 +1001,8 @@ if __name__ == "__main__":
             glUniformMatrix4fv(glGetUniformLocation(mvpPipeline.shaderProgram, "model"), 1, GL_TRUE, tr.identity())
             mvpPipeline.drawCall(gpuAxis, GL_LINES)
 
+        #with pipeline_lock:
         glUseProgram(pipeline.shaderProgram)
-
         x, y = glfw.get_cursor_pos(window)
         ray_direction = get_ray_direction(window, x, y)
         objRot = sg.findNode(Scene, "SceneNode")
