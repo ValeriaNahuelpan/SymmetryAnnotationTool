@@ -21,7 +21,7 @@ pip install -r requirements.txt
 ```
 py annotations_tool.py    
 ```
-## Uso
+## Instrucciones de uso (Importante)
 1. Al iniciar la herramienta aparecerá un objeto por defecto. Abrir un nuevo archivo .off de la carpeta offObjects.
    <br>
     ![import](https://github.com/ValeriaNahuelpan/SymmetryAnnotationTool/assets/62121145/db317928-5a45-4b32-b976-82346e3b455b)
