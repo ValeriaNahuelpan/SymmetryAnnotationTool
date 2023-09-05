@@ -8,7 +8,7 @@ Herramienta para añadir simetrías en objetos 3D, con el fin de generar un conj
 cd SymmetryAnnotationTool
 ```
 ```
-python3 -m venv venv
+python -m venv venv
 ```
 ```
 venv\Scripts\activate
