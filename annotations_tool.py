@@ -711,41 +711,44 @@ def transformGuiOverlay(locationRX, locationRY, locationRZ):
 
     if imgui.begin_main_menu_bar():
         if imgui.begin_menu("File", True):
-            clicked_quit, _ = imgui.menu_item("import new object (.off)", 'Ctrl+I', False, True)
+            clicked_quit, _ = imgui.menu_item("import new object",".off",  False, True)
             if clicked_quit:
-                modelobj = easygui.fileopenbox() #.off
-                rotSymmetry = RotationalSymmetry(15)
-                refSymmetry = ReflectiveSymmetry()
-                # obj2off(modelobj, getAssetPath('newOff.off') )   #convert .obj to .off
-                model = getAssetPath(modelobj) #.off
-                # new scene
-                Scene = createScene(pipeline)
-                # new plane scene
-                Plane = createPlane(pipeline2)
-                # if object have symmetry it is shown
-                symmetriesJson = getSymmetriesJson()
-                proyectPath = os.path.dirname(os.path.abspath("annotations_tool.py"))
-                relativPath = os.path.relpath(modelobj, proyectPath)
-                # drawing symmetries reflectives and rotationals from json
-                symmetry_count = 1
-                for symmetry in symmetriesJson["reflectives"]:
-                    vsym =  SymmetryPlane(np.array(symmetry["point"]), symmetry["normal"])
-                    cubeShape, _, _ = createOFFShape(pipeline, 'cube.off', colors[symmetry_count-1][0],colors[symmetry_count-1][1], colors[symmetry_count-1][2])
-                    # create the plane of last tuple added
-                    planeScene = sg.findNode(Plane, "SceneNode")
-                    plane = sg.SceneGraphNode("planeRef" + str(symmetry_count))
-                    plane.transform = tr.uniformScale(0.00)
-                    plane.childs += [cubeShape]
-                    planeScene.childs += [plane]
-                    # plane = sg.findNode(Plane, "planeNode")
-                    plane.transform = tr.matmul([inv_rotation_matrix,tr.rotationX(locationRX),tr.rotationY(locationRY),vsym.transform, tr.scale(0,0.2,0.4)])
-                    refSymmetry.save_symmetry(symmetry["point"], symmetry["normal"])
-                    symmetry_count += 1
+                try:
+                    modelobj = easygui.fileopenbox() #.off
+                    rotSymmetry = RotationalSymmetry(15)
+                    refSymmetry = ReflectiveSymmetry()
+                    # obj2off(modelobj, getAssetPath('newOff.off') )   #convert .obj to .off
+                    model = getAssetPath(modelobj) #.off
+                    # new scene
+                    Scene = createScene(pipeline)
+                    # new plane scene
+                    Plane = createPlane(pipeline2)
+                    # if object have symmetry it is shown
+                    symmetriesJson = getSymmetriesJson()
+                    proyectPath = os.path.dirname(os.path.abspath("annotations_tool.py"))
+                    relativPath = os.path.relpath(modelobj, proyectPath)
+                    # drawing symmetries reflectives and rotationals from json
+                    symmetry_count = 1
+                    for symmetry in symmetriesJson["reflectives"]:
+                        vsym =  SymmetryPlane(np.array(symmetry["point"]), symmetry["normal"])
+                        cubeShape, _, _ = createOFFShape(pipeline, 'cube.off', colors[symmetry_count-1][0],colors[symmetry_count-1][1], colors[symmetry_count-1][2])
+                        # create the plane of last tuple added
+                        planeScene = sg.findNode(Plane, "SceneNode")
+                        plane = sg.SceneGraphNode("planeRef" + str(symmetry_count))
+                        plane.transform = tr.uniformScale(0.00)
+                        plane.childs += [cubeShape]
+                        planeScene.childs += [plane]
+                        # plane = sg.findNode(Plane, "planeNode")
+                        plane.transform = tr.matmul([inv_rotation_matrix,tr.rotationX(locationRX),tr.rotationY(locationRY),vsym.transform, tr.scale(0,0.2,0.4)])
+                        refSymmetry.save_symmetry(symmetry["point"], symmetry["normal"])
+                        symmetry_count += 1
 
-                for symmetry in symmetriesJson["rotational"]:
-                    rotSymmetry.save_symmetry(symmetry["point"],symmetry["normal"])
-                    rotSymmetry.drawAxis(pipeline, Scene)
-                open_file = True
+                    for symmetry in symmetriesJson["rotational"]:
+                        rotSymmetry.save_symmetry(symmetry["point"],symmetry["normal"])
+                        rotSymmetry.drawAxis(pipeline, Scene)
+                    open_file = True
+                except:
+                    pass
             imgui.end_menu()
         imgui.end_main_menu_bar()
     if open_file:
