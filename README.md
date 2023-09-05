@@ -1,5 +1,5 @@
 # SymmetryAnnotationTool
-Herramienta para añadir simetrías en objetos 3D, con el fin de generar un conjunto de objetos etiquetados para evaluar algoritmos de detección de simetrías.
+Herramienta para añadir simetrías en objetos 3D, con el fin de generar un conjunto de objetos etiquetados correctamente para evaluar algoritmos de detección de simetrías.
 ## Instalación
 1. Version de python 3.10.1
 2. Crear un entorno virtual dentro de la carpeta del proyecto
