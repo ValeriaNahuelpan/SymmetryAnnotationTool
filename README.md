@@ -26,7 +26,7 @@ py annotations_tool.py
    <br>
     ![import](https://github.com/ValeriaNahuelpan/SymmetryAnnotationTool/assets/62121145/db317928-5a45-4b32-b976-82346e3b455b)
 
-2. Para agregar simetrías reflectivas se debe presionar "Add new" y colocar dos puntos con el click derecho sobre el objeto en lugares donde este se refleje. Se dibujará un plano perpendicular al vector normal que los une. Este plano se puede ocultar o 
+2. Luego de abrir un archivo de la carpeta offObjects. Para agregar simetrías reflectivas se debe presionar "Add new" y colocar dos puntos con el click derecho sobre el objeto en lugares donde este se refleje. Se dibujará un plano perpendicular al vector normal que los une. Este plano se puede ocultar o 
     mostrar con el checkbox, guardar, eliminar o refinar.
    <br>
    ![addRef](https://github.com/ValeriaNahuelpan/SymmetryAnnotationTool/assets/62121145/51627fc5-c44d-491c-b8e3-b560b14d3e61)
