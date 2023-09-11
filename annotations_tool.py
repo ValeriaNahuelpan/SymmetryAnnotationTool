@@ -1,13 +1,4 @@
 # coding=utf-8
-"""
-Simple example using ImGui with GLFW and OpenGL
-More info at:
-https://pypi.org/project/imgui/
-Installation:
-pip install imgui[glfw]
-Another example:
-https://github.com/swistakm/pyimgui/blob/master/doc/examples/integrations_glfw3.py#L2
-"""
 import threading
 import queue
 import easygui
